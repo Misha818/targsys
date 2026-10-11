@@ -10,11 +10,13 @@ The site presents TargSys as a technology partner for businesses that need relia
 - Armenian-first content and navigation
 - Hero section with local TargSys imagery
 - Company overview and capability summary
-- Interactive service filtering for:
-  - Network systems
-  - Telephone complexes
-  - IT support
-  - Security systems
+- Service cards for network systems, telephone complexes, IT support, and security
+- Interactive service filtering by category:
+  - All
+  - Infrastructure (network systems, telephone complexes)
+  - Support (IT support)
+  - Security (security systems)
+- Expandable "Read more" block in the About section
 - Subscription IT support section
 - Responsive trusted-partner logo carousel
 - IT training section
@@ -90,15 +92,15 @@ Includes the office address, phone numbers, email address, social links, and an 
 
 ## Styling
 
-The visual system uses the recovered TargSys palette:
+The visual system uses a dark blue palette with tonal variations only:
 
-- Charcoal: `#2a2a2a`
-- Deep green-black: `#17262a`
-- Mint: `#75d69c`
-- Cyan: `#00c1cf`
-- Coral: `#fe6c61`
-- Amber: `#f7be68`
-- Paper white: `#f7f7f7`
+- Ink navy: `#0a1f32`
+- Deep navy: `#0d2339`
+- Slate blue: `#163d63`
+- Blue accent: `#2d5d8d`
+- Soft blue highlight: `#8aa7ca`
+- Pale blue: `#bfd4ed`
+- Paper blue: `#edf3f9`
 
 Styles are kept in `style.css` so the HTML remains focused on content and structure.
 
@@ -107,6 +109,7 @@ Styles are kept in `style.css` so the HTML remains focused on content and struct
 `script.js` provides:
 
 - Mobile menu open and close behavior
+- About section "Read more" expand and collapse
 - Service category filtering
 - Responsive partner carousel grouping
 - Dynamic footer year
@@ -122,7 +125,7 @@ Current content includes:
 - TargSys services for networks, telephony, IT support, and security
 - Subscription-based IT support
 - IT professional training
-- Yerevan office address: Հակոբ Հակոբյան 3, Երեւան
+- Yerevan office address: Տիգրան Մեծ 65ա
 - Phone numbers: `+374 99 509195` and `+374 99 509192`
 - Email: `info@targsys.com`
 
