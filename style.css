@@ -178,18 +178,23 @@ section { padding: 104px 0; }
 .support-point span { color: rgba(255,255,255,.8); font-size: .9rem; }
 
 .partners { background: var(--paper); }
-.partner-carousel { position: relative; padding: 26px 62px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
-.partner-page { display: none; grid-template-columns: repeat(5, 1fr); gap: 14px; }
-.partner-page.active { display: grid; }
-.partner-logo { min-height: 96px; display: grid; place-items: center; padding: 16px; border: 1px solid var(--line); background: var(--white); transition: transform .2s, border-color .2s; }
+.partner-carousel { --partner-tile: 210px; --partner-gap: 16px; position: relative; padding: 26px 68px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); }
+/* One row of logos; the track scrolls by transform and its edges fade out beneath the buttons. */
+.partner-viewport { overflow: hidden; padding: 6px 0; -webkit-mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); mask-image: linear-gradient(90deg, transparent, #000 28px, #000 calc(100% - 28px), transparent); touch-action: pan-y; cursor: grab; }
+.partner-viewport.is-dragging { cursor: grabbing; }
+.partner-track { display: flex; gap: var(--partner-gap); width: max-content; will-change: transform; }
+.partner-logo { flex: 0 0 var(--partner-tile); height: 124px; display: flex; align-items: center; justify-content: center; overflow: hidden; padding: 18px 20px; border: 1px solid var(--line); border-radius: 12px; background: var(--white); transition: transform .2s, border-color .2s; }
 .partner-logo:hover { transform: translateY(-3px); border-color: var(--blue-500); }
-.partner-logo img { width: 100%; height: 54px; object-fit: contain; filter: grayscale(1); opacity: .7; transition: filter .2s, opacity .2s; }
-.partner-logo:hover img { filter: grayscale(0); opacity: 1; }
-.carousel-control { position: absolute; top: 50%; width: 38px; height: 38px; border: 1px solid var(--ink); border-radius: 50%; color: var(--ink); background: transparent; font: inherit; font-size: 1.35rem; line-height: 1; cursor: pointer; transform: translateY(-50%); }
-.carousel-control:hover, .carousel-control:focus-visible { color: var(--white); background: var(--ink); }
-.carousel-control.prev { left: 10px; }
-.carousel-control.next { right: 10px; }
-.carousel-status { margin-top: 18px; color: var(--muted); text-align: center; font-size: .78rem; letter-spacing: .08em; }
+.partner-logo img { width: 100%; height: 100%; min-width: 0; min-height: 0; object-fit: contain; pointer-events: none; user-select: none; -webkit-user-drag: none; }
+.carousel-control { position: absolute; top: 50%; z-index: 1; display: grid; place-items: center; width: 44px; height: 44px; padding: 0; border: 1px solid var(--line); border-radius: 50%; color: var(--ink); background: var(--white); box-shadow: 0 6px 16px rgba(11,31,51,.08); cursor: pointer; transform: translateY(-50%); transition: color .2s, background .2s, border-color .2s, box-shadow .2s, transform .2s; }
+.carousel-control svg { transition: transform .2s; }
+.carousel-control:hover { color: var(--white); border-color: var(--ink); background: var(--ink); box-shadow: 0 10px 24px rgba(11,31,51,.16); }
+.carousel-control.prev:hover svg { transform: translateX(-2px); }
+.carousel-control.next:hover svg { transform: translateX(2px); }
+.carousel-control:focus-visible { outline: 3px solid var(--blue-200); outline-offset: 2px; }
+.carousel-control:active { transform: translateY(-50%) scale(.92); }
+.carousel-control.prev { left: 12px; }
+.carousel-control.next { right: 12px; }
 
 .training { background: var(--white); }
 .training-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 70px; align-items: center; }
@@ -229,6 +234,7 @@ footer { padding: 30px 0; color: rgba(255,255,255,.68); background: var(--ink); 
 }
 @media (prefers-reduced-motion: reduce) {
   .service img, .service-content, .service-more { transition: none; }
+  .carousel-control, .carousel-control svg { transition: none; }
 }
 @media (max-width: 900px) {
   .nav-links { display: none; position: absolute; top: 75px; left: 20px; right: 20px; padding: 18px; border: 1px solid rgba(255,255,255,.2); border-radius: 12px; background: rgba(13,35,57,.97); }
@@ -241,7 +247,8 @@ footer { padding: 30px 0; color: rgba(255,255,255,.68); background: var(--ink); 
   .about-more-open.is-hidden { display: none; }
   /* Cancel the 42px grid row gap so the expanded text follows the first paragraph at normal paragraph spacing. */
   .about-more { margin-top: -42px; }
-  .partner-page { grid-template-columns: repeat(3, 1fr); }
+  .partner-carousel { --partner-tile: 180px; }
+  .partner-logo { height: 108px; padding: 14px 16px; }
 }
 @media (max-width: 560px) {
   .wrap { width: min(100% - 28px, 1160px); }
@@ -259,10 +266,14 @@ footer { padding: 30px 0; color: rgba(255,255,255,.68); background: var(--ink); 
   .service { min-height: 300px; }
   .service-details-body { padding: 22px 18px; }
   .service-details .service-details-lead { padding-left: 14px; }
-  .partner-carousel { padding: 20px 46px; }
-  .partner-page { grid-template-columns: repeat(2, 1fr); gap: 10px; }
-  .partner-logo { min-height: 78px; padding: 8px; }
-  .partner-logo img { height: 58px; }
+  /* The arrows move below the logos so the row can use the full width. */
+  .partner-carousel { --partner-tile: 150px; --partner-gap: 12px; padding: 20px 0 76px; }
+  .partner-viewport { -webkit-mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent); mask-image: linear-gradient(90deg, transparent, #000 16px, #000 calc(100% - 16px), transparent); }
+  .partner-logo { height: 96px; padding: 12px; }
+  .carousel-control { top: auto; bottom: 20px; width: 40px; height: 40px; transform: none; }
+  .carousel-control:active { transform: scale(.92); }
+  .carousel-control.prev { left: calc(50% - 48px); }
+  .carousel-control.next { right: calc(50% - 48px); }
   .map-frame { height: 300px; margin-top: 42px; }
   .contact-item { grid-template-columns: 92px 1fr; }
   .footer-inner { display: grid; }
@@ -282,8 +293,7 @@ footer { padding: 30px 0; color: rgba(255,255,255,.68); background: var(--ink); 
   .section-head h2 { font-size: 1.9rem; }
   .service-content { padding: 16px; }
   .service h3 { font-size: 1.25rem; }
-  .partner-carousel { padding-right: 36px; padding-left: 36px; }
-  .partner-logo { min-height: 72px; padding: 6px; }
-  .partner-logo img { height: 52px; }
+  .partner-carousel { --partner-tile: 132px; --partner-gap: 10px; }
+  .partner-logo { height: 88px; padding: 10px; }
   .contact-item { grid-template-columns: 1fr; gap: 3px; }
 }

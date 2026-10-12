@@ -76,11 +76,7 @@ Describes recurring IT support, preventive checks, remote management, and rapid 
 
 ### Trusted Partners
 
-Displays the recovered partner logos in a responsive carousel. The carousel groups logos according to viewport width:
-
-- Desktop: 10 logos per slide
-- Tablet: 6 logos per slide
-- Small mobile: 4 logos per slide
+Displays the partner logos in a single row that scrolls continuously and loops seamlessly. The previous and next buttons move one logo at a time, and logos can also be dragged sideways on touch screens. Automatic movement pauses on hover, on a click or tap, during a drag, and while the controls have keyboard focus, then resumes shortly after the interaction ends. It stays still when the visitor prefers reduced motion.
 
 ### Training
 
@@ -111,7 +107,7 @@ Styles are kept in `style.css` so the HTML remains focused on content and struct
 - Mobile menu open and close behavior
 - About section "Read more" expand and collapse
 - Service category filtering
-- Responsive partner carousel grouping
+- Auto-scrolling partner logo carousel
 - Dynamic footer year
 - Email copy-to-clipboard feedback
 - Scroll-reveal animation setup

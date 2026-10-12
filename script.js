@@ -150,41 +150,160 @@ serviceCards.forEach((card) => {
 });
 
 const partnerCarousel = document.querySelector('.partner-carousel');
-const nextPartnerButton = document.querySelector('.carousel-control.next');
-const partnerLogoTemplates = Array.from(document.querySelectorAll('.partner-logo')).map((logo) => logo.cloneNode(true));
-let partnerPages = [];
-const partnerStatus = document.querySelector('.carousel-status');
-let partnerPageIndex = 0;
-let partnerGroupSize = 0;
-const getPartnerGroupSize = () => window.innerWidth <= 560 ? 4 : window.innerWidth <= 900 ? 6 : 10;
-const buildPartnerPages = () => {
-  const nextGroupSize = getPartnerGroupSize();
-  if (nextGroupSize === partnerGroupSize) return;
-  partnerGroupSize = nextGroupSize;
-  partnerCarousel.querySelectorAll('.partner-page').forEach((page) => page.remove());
-  for (let start = 0; start < partnerLogoTemplates.length; start += partnerGroupSize) {
-    const page = document.createElement('div');
-    page.className = 'partner-page';
-    partnerLogoTemplates.slice(start, start + partnerGroupSize).forEach((logo) => page.appendChild(logo.cloneNode(true)));
-    partnerCarousel.insertBefore(page, nextPartnerButton);
+const partnerViewport = partnerCarousel.querySelector('.partner-viewport');
+const partnerTrack = partnerCarousel.querySelector('.partner-track');
+const partnerLogos = Array.from(partnerTrack.querySelectorAll('.partner-logo'));
+const partnerSpeed = 36; // px per second
+const partnerResumeDelay = 3500;
+const partnerStepDuration = 520;
+let partnerStep = 0;
+let partnerSetWidth = 0;
+let partnerOffset = 0;
+let partnerVelocity = 0;
+let partnerTween = null;
+let partnerDrag = null;
+let partnerHovered = false;
+let partnerKeyboardFocus = false;
+let partnerHoldUntil = 0;
+let partnerFrame = null;
+let partnerLastTime = null;
+const wrapPartnerOffset = (value) => ((value % partnerSetWidth) + partnerSetWidth) % partnerSetWidth;
+const renderPartners = () => { partnerTrack.style.transform = `translate3d(${-partnerOffset}px, 0, 0)`; };
+// Tiles share one width, so a whole set is (tile + gap) × count. Enough hidden copies follow it to fill the
+// viewport at any offset, which lets the track wrap back to the start without a visible jump.
+const measurePartners = () => {
+  const gap = parseFloat(getComputedStyle(partnerTrack).columnGap) || 0;
+  const step = partnerLogos[0].getBoundingClientRect().width + gap;
+  if (partnerStep) partnerOffset = partnerOffset / partnerStep * step;
+  partnerStep = step;
+  partnerSetWidth = step * partnerLogos.length;
+  const copies = Math.max(1, Math.ceil(partnerViewport.clientWidth / partnerSetWidth));
+  const clones = partnerTrack.querySelectorAll('.partner-logo[aria-hidden="true"]');
+  if (clones.length !== copies * partnerLogos.length) {
+    clones.forEach((clone) => clone.remove());
+    for (let copy = 0; copy < copies; copy += 1) {
+      partnerLogos.forEach((logo) => {
+        const clone = logo.cloneNode(true);
+        clone.setAttribute('aria-hidden', 'true');
+        clone.querySelectorAll('img').forEach((img) => { img.alt = ''; });
+        clone.querySelectorAll('a, button').forEach((item) => item.setAttribute('tabindex', '-1'));
+        partnerTrack.appendChild(clone);
+      });
+    }
   }
-  partnerPages = partnerCarousel.querySelectorAll('.partner-page');
-  partnerPageIndex = 0;
+  partnerOffset = wrapPartnerOffset(partnerOffset);
+  renderPartners();
 };
-const showPartnerPage = (index) => {
-  partnerPageIndex = (index + partnerPages.length) % partnerPages.length;
-  partnerPages.forEach((page, pageIndex) => page.classList.toggle('active', pageIndex === partnerPageIndex));
-  partnerStatus.textContent = `${partnerPageIndex + 1} / ${partnerPages.length}`;
+const isPartnerPaused = (now) => reduceMotion.matches || partnerHovered || partnerKeyboardFocus || partnerDrag || partnerTween || now < partnerHoldUntil;
+const holdPartners = () => { partnerHoldUntil = performance.now() + partnerResumeDelay; };
+const easeInOutCubic = (t) => t < .5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2;
+const getPartnerTweenPosition = (now) => {
+  const progress = Math.min((now - partnerTween.start) / partnerStepDuration, 1);
+  return { progress, position: partnerTween.from + (partnerTween.to - partnerTween.from) * easeInOutCubic(progress) };
 };
-buildPartnerPages();
-showPartnerPage(0);
-document.querySelector('.carousel-control.prev').addEventListener('click', () => showPartnerPage(partnerPageIndex - 1));
-document.querySelector('.carousel-control.next').addEventListener('click', () => showPartnerPage(partnerPageIndex + 1));
-window.addEventListener('resize', () => {
-  const previousGroupSize = partnerGroupSize;
-  buildPartnerPages();
-  if (previousGroupSize !== partnerGroupSize) showPartnerPage(0);
+const tickPartners = (now) => {
+  const elapsed = partnerLastTime === null ? 0 : Math.min(now - partnerLastTime, 64);
+  partnerLastTime = now;
+  if (partnerTween) {
+    const { progress, position } = getPartnerTweenPosition(now);
+    partnerOffset = wrapPartnerOffset(position);
+    if (progress === 1) partnerTween = null;
+  } else if (!partnerDrag) {
+    // Ease the speed up and down so pausing and resuming never look abrupt.
+    const target = isPartnerPaused(now) ? 0 : partnerSpeed;
+    partnerVelocity += (target - partnerVelocity) * Math.min(1, elapsed / 260);
+    if (target === 0 && partnerVelocity < .5) partnerVelocity = 0;
+    partnerOffset = wrapPartnerOffset(partnerOffset + partnerVelocity * elapsed / 1000);
+  }
+  renderPartners();
+  partnerFrame = requestAnimationFrame(tickPartners);
+};
+const startPartners = () => {
+  if (partnerFrame !== null) return;
+  partnerLastTime = null;
+  partnerFrame = requestAnimationFrame(tickPartners);
+};
+const stopPartners = () => {
+  if (partnerFrame === null) return;
+  cancelAnimationFrame(partnerFrame);
+  partnerFrame = null;
+};
+// Move one logo per click, aligned to the tile edges; quick repeated clicks add further steps.
+const movePartners = (direction) => {
+  holdPartners();
+  partnerVelocity = 0;
+  if (reduceMotion.matches) {
+    partnerTween = null;
+    partnerOffset = wrapPartnerOffset((Math.round(partnerOffset / partnerStep) + direction) * partnerStep);
+    renderPartners();
+    return;
+  }
+  const now = performance.now();
+  const from = partnerTween ? getPartnerTweenPosition(now).position : partnerOffset;
+  const base = partnerTween ? partnerTween.to : Math.round(partnerOffset / partnerStep) * partnerStep;
+  partnerTween = { from, to: base + direction * partnerStep, start: now };
+};
+partnerCarousel.querySelector('.carousel-control.prev').addEventListener('click', () => movePartners(-1));
+partnerCarousel.querySelector('.carousel-control.next').addEventListener('click', () => movePartners(1));
+partnerCarousel.addEventListener('keydown', (event) => {
+  if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return;
+  event.preventDefault();
+  movePartners(event.key === 'ArrowLeft' ? -1 : 1);
 });
+// Keyboard focus pauses the motion; mouse and touch clicks on the buttons use the timed hold instead.
+partnerCarousel.addEventListener('focusin', (event) => { partnerKeyboardFocus = event.target.matches(':focus-visible'); });
+partnerCarousel.addEventListener('focusout', (event) => {
+  if (partnerCarousel.contains(event.relatedTarget)) return;
+  partnerKeyboardFocus = false;
+  holdPartners();
+});
+partnerViewport.addEventListener('pointerenter', (event) => { if (event.pointerType === 'mouse') partnerHovered = true; });
+partnerViewport.addEventListener('pointerleave', (event) => {
+  if (event.pointerType !== 'mouse') return;
+  partnerHovered = false;
+  holdPartners();
+});
+// Pressing or tapping a logo pauses the motion; dragging sideways moves the logos by hand.
+partnerViewport.addEventListener('pointerdown', (event) => {
+  if (event.pointerType === 'mouse' && event.button !== 0) return;
+  holdPartners();
+  partnerTween = null;
+  partnerVelocity = 0;
+  partnerDrag = { id: event.pointerId, startX: event.clientX, startOffset: partnerOffset, moved: false };
+});
+partnerViewport.addEventListener('pointermove', (event) => {
+  if (!partnerDrag || event.pointerId !== partnerDrag.id) return;
+  const distance = event.clientX - partnerDrag.startX;
+  if (!partnerDrag.moved && Math.abs(distance) < 6) return;
+  if (!partnerDrag.moved) {
+    partnerDrag.moved = true;
+    partnerViewport.setPointerCapture(event.pointerId);
+    partnerViewport.classList.add('is-dragging');
+  }
+  partnerOffset = wrapPartnerOffset(partnerDrag.startOffset - distance);
+});
+const endPartnerDrag = (event) => {
+  if (!partnerDrag || event.pointerId !== partnerDrag.id) return;
+  const wasMoved = partnerDrag.moved;
+  partnerDrag = null;
+  partnerViewport.classList.remove('is-dragging');
+  holdPartners();
+  // A drag should not also open a logo link when the pointer is released over it.
+  if (wasMoved) partnerViewport.addEventListener('click', (click) => { click.preventDefault(); click.stopPropagation(); }, { capture: true, once: true });
+};
+window.addEventListener('pointerup', endPartnerDrag);
+window.addEventListener('pointercancel', endPartnerDrag);
+// Only animate while the carousel is near the screen, and load its logos just before it comes into view.
+new IntersectionObserver((entries) => {
+  if (entries[entries.length - 1].isIntersecting) {
+    partnerTrack.querySelectorAll('img[loading="lazy"]').forEach((img) => { img.loading = 'eager'; });
+    startPartners();
+  } else {
+    stopPartners();
+  }
+}, { rootMargin: '200px 0px' }).observe(partnerCarousel);
+measurePartners();
+window.addEventListener('resize', measurePartners);
 
 document.querySelector('#current-year').textContent = new Date().getFullYear();
 
